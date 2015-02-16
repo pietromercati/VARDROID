@@ -1,0 +1,2 @@
+/home/pietro/WORK_FOLDER/ODROID_XU3/DRM_source_code/vardroid/enable_counters_module/enable_counters_module.ko
+/home/pietro/WORK_FOLDER/ODROID_XU3/DRM_source_code/vardroid/enable_counters_module/enable_counters_module.o
