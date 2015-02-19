@@ -1,5 +1,5 @@
     
-// --------------- VARDROID PROJECT - BUBBLE SELECTOR -----------------
+// --------------- VARDROID PROJECT - PERT ----------------
 /*
  * 
  * Author: Andrea Bartolini
@@ -51,55 +51,41 @@
 #include <stdlib.h>  // for strtol
 
 
-#define DEBUG // enables printf for debugging
-
 // Macros for ioctl
 #define SELECT_BUBBLE 		1
 #define SELECT_BUBBLE_LENGTH 	3
 #define READ_JIFFIES		4
 
+#define ODROIDXU3
+//#define DEBUG
+
+
+#ifdef ODROIDXU3
+#endif
+
+
+
+
 // ---------------- MAIN FUNCTION ----------------- //
 
 int main(int argc, char ** argv){
-	int a, b;
-	int fd;	
-	int bubble;	
-	int bubble_length;
 	char *p1;
 	char *p2;
+	
 
-	// get the bubble from user
-	if (argc < 3){
-		printf("Please select a Vardroid bubble and bubble length\n");
-		exit(1);
+	if (argc<3){
+		printf("provide the sched type (0=idle, 1=power) and the sleep duration (in sec)");
+		exit(0);	
 	}
-	bubble = strtol(argv[1], &p1, 10);
-	bubble_length = strtol(argv[2], &p2, 10);
+	// get arguments : sched type (idle or power) sleep duration
 
-	printf("select bubble %u with length %u\n", bubble, bubble_length);
-	// open vardroid driver
-	fd = open("/dev/vardroid_interface",O_RDWR);
-	if( fd == -1) {
-                printf("Monitor driver open error...\n");
-                exit(0);
-        }
 
-	// select bubble
-	ioctl(fd, SELECT_BUBBLE, &bubble);
-	close (fd);
+	// 
 
-	// select bubble length
-	fd = open("/dev/vardroid_interface",O_RDWR);
-	if( fd == -1) {
-                printf("Monitor driver open error...\n");
-                exit(0);
-        }
 
-	b = ioctl(fd, SELECT_BUBBLE_LENGTH, &bubble_length);
-	
-	close(fd);
-	
-	// exit 
+
+
+
 	return 0;
 } 
 

@@ -46,7 +46,7 @@
 #include <pthread.h>
 #include <sys/wait.h> //for wait()
 
-#define DEBUG // enables printf for debugging
+//#define DEBUG // enables printf for debugging
 #define NUM_CPU 8 // number of cpu of the target platform
 #define SLEEP_TIME 1
 

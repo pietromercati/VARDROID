@@ -52,6 +52,8 @@
 
 #define SELECT_BUBBLE 		1
 #define SELECT_BUBBLE_LENGTH 	3
+#define READ_JIFFIES		4
+
 
 extern int vardroid_select_bubble_global;
 extern int vardroid_bubble_length;
@@ -82,7 +84,7 @@ long vardroid_mod_exit(void){
 }*/
 
 static int vardroid_open (struct inode *inode, struct file *file) {
-	printk(KERN_ALERT "monitor_open\n");
+	printk(KERN_ALERT "vardroid_open\n");
 	return 0;
 }
 
@@ -98,7 +100,7 @@ static int vardroid_release (struct inode *inode, struct file *file) {
 static long vardroid_ioctl(struct file *file,
 		unsigned int cmd, unsigned long arg) {
 	long retval = 0;
-
+	long unsigned int j = 0;
 	switch ( cmd ) {
 		/* Pietro : the value of seleceted_cpu should be passed from userspace and determined the location
 			of all variables which are defined per cpu */
@@ -119,7 +121,13 @@ static long vardroid_ioctl(struct file *file,
 			}
 			printk(KERN_ALERT "vardroid_bubble_length = %u\n\n", vardroid_bubble_length);
 			break;
-			
+		case READ_JIFFIES:
+			j = jiffies;
+			if (copy_to_user((long unsigned int *)arg, &j, sizeof(long unsigned int))){
+                                printk (KERN_ALERT  "ioctl READ_JIFFIES - Pass error")  ;
+                                return -EFAULT;
+                        }
+                        break;
 		default:
 			printk(KERN_ALERT "DEBUG: vardroid_ioctrl - You should not be here!!!!\n");
 			retval = -EINVAL;

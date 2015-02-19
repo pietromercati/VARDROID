@@ -50,6 +50,10 @@
 
 #define DEBUG // enables printf for debugging
 
+#define SELECT_BUBBLE   1
+#define BUBBLE_LENGTH   3
+#define READ_JIFFIES    4
+
 
 // stuff for set thread affinity
 #define CPU_SETSIZE 1024
@@ -135,61 +139,70 @@ int main(int argc, char ** argv){
 	char *p1;
 	char *p2;
 	char *p3;
-	int mem_i;
+	long unsigned int jiffies_start;
+	long unsigned int jiffies_end;
+	int fd;
+	int num_iterations;
+	int t;
 
-	if (argc < 2){
-		printf("please provide the vector size (# of integers) and length if experiment\n");
-		printf("provide also the memory bound you are interested in (1 = L1, 2 = L2, 3 = RAM");
-		exit(0);
-	}
+	if(argc < 2){
+                printf("please provide number of iterations\n");
+                exit(0);
+        }
+        num_iterations = strtol(argv[1], &p1, 10);
 
-	vec_size = strtol(argv[1], &p1, 10);	
-	exp_size = strtol(argv[2], &p2, 10);
-	mem_i = strtol(argv[3], &p3, 10);
+
+	// write vector size and experiment size
+	vec_size = 100000;
+	exp_size = 10;
 	
 
 	//allocate a big vector
 	pt = (int*)malloc(vec_size*sizeof(int));	
 	x = (int*)malloc(exp_size*sizeof(int));   // vector of indeces build to avoid prefetching
-
+	
+	//initialize vector
 	for (i = 0 ; i < vec_size ; i++ ){
 		pt[i] = i;
 	}
 
-	switch(mem_i){
-		case 1:
-			for ( i = 0 ; i < exp_size ; i ++ ){
-				x[i] = i%vec_size;
-			}
-			break;
-		case 2:
-			if ( vec_size < ODROID_L1_SIZE*(1024/4) ){
-				printf("vector size needs to be at least %u\n", ODROID_L1_SIZE*(1024/4));
-				exit(0);
-			}
-			for ( i = 0 ; i < exp_size ; i ++ ){
-//				printf("debug %u %u \n", i, (i*ODROID_L1_SIZE*(1024/4) )%vec_size);
-				x[i] = (i*ODROID_L1_SIZE*(1024/4) )%vec_size;   // note: everything is converted to #int
-			}
-			break;
-		default:
-			printf("something is wrong...\n");
-			exit(0);
-		}	
-	//init_perfcounters (1, 0); 
-		
+	
+	if ( vec_size < ODROID_L1_SIZE*(1024) ){
+		printf("vector size needs to be at least %u\n", ODROID_L1_SIZE*(1024));
+	}
+	// initialize vector in indeces
+	for ( i = 0 ; i < exp_size ; i ++ ){ 
+		// note: we need to make sure that the vector is larger than the L1 cache 
+		// then we should read elements far enough from each other so to be sure 
+		// that they are in L2 memory (e.g. not prefetched)
+//		printf("debug %u %u \n", i, (i*ODROID_L1_SIZE*(1024/4) )%vec_size);
+		x[i] = (i*ODROID_L1_SIZE*(1024) )%vec_size;   // note: everything is converted to #int
+	}
 
-		pidM = fork();
+	// open driver, get jiffies and close driver
+        fd = open("/dev/vardroid_interface",O_RDWR);
+        if( fd == -1) {
+                printf("Monitor driver open error...\n");
+                exit(0);
+        }
+        ioctl(fd, READ_JIFFIES, &jiffies_start);
+        close(fd);
+
+
+	pidM = fork();
 
                 if (pidM != 0) {
                         //printf("debug : pidM = %u\n", pidM);
 					
-			for (k = 0 ; k < 10 ; k ++){
+			for (k = 0 ; k < num_iterations ; k ++){
 				c1 = clock();
 
 		        	// execute some code
-				for (i = 0 ; i < exp_size ; i ++){
-					a = pt[x[i]];
+				for (t = 0 ; t < 1000000 ; t++){
+					for (i = 0 ; i < exp_size ; i ++){
+						//a = pt[i];
+						a = pt[x[i]];
+					}
 				}
 				c2 = clock();
 			
@@ -205,6 +218,25 @@ int main(int argc, char ** argv){
                         setCurrentThreadAffinityMask(mask);
                 }
 	
+
+
+	// open driver, get jiffies and close driver
+        fd = open("/dev/vardroid_interface",O_RDWR);
+        if( fd == -1) {
+                printf("Monitor driver open error...\n");
+                exit(0);
+        }
+
+        ioctl(fd, READ_JIFFIES, &jiffies_end);
+        close(fd);
+
+
+
+
+	free(pt);
+	free(x);
+
+
 	return 0;
 } 
 

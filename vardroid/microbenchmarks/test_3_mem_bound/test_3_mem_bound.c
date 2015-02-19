@@ -50,9 +50,9 @@
 
 #define DEBUG // enables printf for debugging
 
-// Macros for ioctl
-#define SELECT_BUBBLE 	1
-
+#define SELECT_BUBBLE   1
+#define BUBBLE_LENGTH   3
+#define READ_JIFFIES    4
 
 
 // stuff for set thread affinity
@@ -117,6 +117,9 @@ static inline void init_perfcounters (int32_t do_reset, int32_t enable_divider)
 }
 
 
+#define ODROID_L1_SIZE 	32 	//in kilobytes
+#define ODROID_L2_SIZE 	2048  	// in kilobytes
+#define ODROID_RAM_SIZE 2  // in gigabytes
 // ---------------- MAIN FUNCTION ----------------- //
 
 int main(int argc, char ** argv){
@@ -125,42 +128,110 @@ int main(int argc, char ** argv){
 	int i;
 	int j;
 	int k;
+	int *x;
 	int a = 0;
 	cpu_set_t mask;
 	long unsigned int c2, c1;
 	double time_spent;
-	// fork a process
+	int *pt;
+	int vec_size;
+	int exp_size;
+	char *p1;
+	char *p2;
+	char *p3;
+	long unsigned int jiffies_start;
+	long unsigned int jiffies_end;
+	int fd;
+	int num_iterations;
+	int t;
 
-	//init_perfcounters (1, 0); 
-		
+	if(argc < 2){
+                printf("please provide number of iterations\n");
+                exit(0);
+        }
+        num_iterations = strtol(argv[1], &p1, 10);
 
-		pidM = fork();
 
-                if (pidM != 0) {
+	// write vector size and experiment size
+	vec_size = ODROID_L2_SIZE*1024*10;
+	exp_size = 10;
+	
+
+	//allocate a big vector
+	pt = (int*)malloc(vec_size*sizeof(int));	
+	x = (int*)malloc(exp_size*sizeof(int));   // vector of indeces build to avoid prefetching
+	
+	//initialize vector
+	for (i = 0 ; i < vec_size ; i++ ){
+		pt[i] = i;
+	}
+
+	
+	// initialize vector in indeces
+	for ( i = 0 ; i < exp_size ; i ++ ){ 
+		// note: we need to make sure that the vector is larger than the L1 cache 
+		// then we should read elements far enough from each other so to be sure 
+		// that they are in L2 memory (e.g. not prefetched)
+//		printf("debug %u %u \n", i, (i*ODROID_L1_SIZE*(1024/4) )%vec_size);
+		x[i] = (i*ODROID_L2_SIZE*(1024) )%vec_size;   // note: everything is converted to #int
+	}
+
+	// open driver, get jiffies and close driver
+        fd = open("/dev/vardroid_interface",O_RDWR);
+        if( fd == -1) {
+                printf("Monitor driver open error...\n");
+                exit(0);
+        }
+        ioctl(fd, READ_JIFFIES, &jiffies_start);
+        close(fd);
+
+
+	pidM = fork();
+
+        if (pidM != 0) {
                         //printf("debug : pidM = %u\n", pidM);
 					
-			for (k = 0 ; k < 100 ; k ++){
-				c1 = clock();
+		for (k = 0 ; k < num_iterations ; k ++){
+			c1 = clock();
 
-		        	// execute some code
-				for (i = 0 ; i < 100 ; i ++){
-					for (j = 0 ; j < 1000000 ; j ++)
-					//asm volatile ("add r3, r3");
-					a = a + 1;
+		       	// execute some code
+			for (t = 0 ; t < 1000000 ; t++){
+				for (i = 0 ; i < exp_size ; i ++){
+					//a = pt[i]; //use this to check if there is time difference between the two versions
+					a = pt[x[i]];
 				}
-				c2 = clock();
-			
-				time_spent = (double)(c2 - c1) / CLOCKS_PER_SEC;	        	
-				printf("Execution Time = %f\n", time_spent );
 			}
-                        
-                }
-                else{
-                        CPU_ZERO(&mask);
-                        CPU_SET(target_cpu, &mask);
-                        setCurrentThreadAffinityMask(mask);
-                }
+			c2 = clock();
+			
+			time_spent = (double)(c2 - c1) / CLOCKS_PER_SEC;	        	
+			printf("Execution Time = %f\n", time_spent );
+				
+		}
+                         
+        }
+        else{ 
+		CPU_ZERO(&mask);
+        	CPU_SET(target_cpu, &mask);
+        	setCurrentThreadAffinityMask(mask);
+       	}
 	
+	// open driver, get jiffies and close driver
+        fd = open("/dev/vardroid_interface",O_RDWR);
+        if( fd == -1) {
+                printf("Monitor driver open error...\n");
+                exit(0);
+        }
+
+        ioctl(fd, READ_JIFFIES, &jiffies_end);
+        close(fd);
+
+
+	free(pt);
+	free(x);
+
+
+
+
 	return 0;
 } 
 

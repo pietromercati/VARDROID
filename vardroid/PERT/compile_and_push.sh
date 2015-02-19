@@ -30,7 +30,7 @@
 
 
 
-make CC=${NDK_TOOLCHAIN}gcc CFLAGS=--sysroot=${NDK_SYSROOT} dummy_test_2
-adb push dummy_test_2 data/PIETRO/VARDROID
+make CC=${NDK_TOOLCHAIN}gcc CFLAGS=--sysroot=${NDK_SYSROOT} vardroid_PERT
+adb push vardroid_PERT data/PIETRO/VARDROID/
 
 
