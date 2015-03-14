@@ -1,12 +1,10 @@
 
 clear all
 close all
-                                                
+   
 NUM_CORES = 8;
-DATA_COLUMNS = 11;
-DATA_SIZE = 1000;
 
-monitor_stats_data_cpu  = zeros(DATA_SIZE, DATA_COLUMNS, NUM_CORES);
+
 
 monitored_cpus = [];
 
@@ -22,3 +20,6 @@ for i = 1 : NUM_CORES
 		clear a;
 	end
 end
+
+
+[size_ref, index_ref] = max(size1);

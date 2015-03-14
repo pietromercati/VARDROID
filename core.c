@@ -94,10 +94,11 @@
 // Macros definitions
 #define VARDROID     		// activates stuff related to the VarDroid project
 #define MONITOR_ON		// activates the monitor 
-#define REL_SENS		// activates the reliability sensors
-#define MONITOR_EXPORT_LENGTH 1024 //Number of enries of kind "monitor_stats_data" inside the allocated buffer. It has to be same as in the driver and in the userspace program
+//#define REL_SENS		// activates the reliability sensors
+#define MONITOR_EXPORT_LENGTH 	1024 //Number of enries of kind "monitor_stats_data" inside the allocated buffer. It has to be same as in the driver and in the userspace program
 #define DEBUG_ON		// sctivates debug functionalities (e.g. printk)
-#define EXYNOS_TMU_COUNT      5 // this should be the same as in exynos_thermal.c
+#define EXYNOS_TMU_COUNT      	5 // this should be the same as in exynos_thermal.c
+#define POWER_SENSOR_COUNT 	4 // number of power sensors
 //end of Macros definitions
 
 // Variables definitions
@@ -109,7 +110,7 @@ struct monitor_stats_data {
                 unsigned long int instructions;
 		unsigned int temp[EXYNOS_TMU_COUNT] ;
 		unsigned int power_id;
-                unsigned int power ;
+                unsigned int power[POWER_SENSOR_COUNT];
                 unsigned int pid ;
                 unsigned int volt ;
                 unsigned int freq ;
@@ -134,7 +135,12 @@ EXPORT_SYMBOL(temp_monitor);
 
 DEFINE_PER_CPU(unsigned int , power_core_id);
 EXPORT_PER_CPU_SYMBOL(power_core_id);
-DEFINE_PER_CPU(unsigned int , power_core_monitor);
+
+unsigned int power_core_monitor_single[POWER_SENSOR_COUNT];
+EXPORT_SYMBOL(power_core_monitor_single);
+unsigned int power_core_id_single;
+EXPORT_SYMBOL(power_core_id_single);
+DEFINE_PER_CPU(unsigned int , power_core_monitor) = 0;
 EXPORT_PER_CPU_SYMBOL(power_core_monitor);
 DEFINE_PER_CPU(unsigned int , current_sched_pid); // per_cpu variable that stores the current scheduled pid. it is updated inside scheduler_tick()
 EXPORT_PER_CPU_SYMBOL(current_sched_pid);
@@ -2850,7 +2856,7 @@ inline void vardroid_bubble(int select){
 		case 0 : 				// bubble 0 : empty bubble (do nothing)
 		
 			break;
-		case 1 : 				// bubble 1 : series of NOP 
+		case 1 : 				// bubble 1 : Idle Bubble (series of NOP)
 			for (i = 0 ; i < num_loops ; i ++ ){
 			asm volatile ("mov r0, r0");
 			asm volatile ("mov r0, r0");
@@ -2874,9 +2880,30 @@ inline void vardroid_bubble(int select){
 			asm volatile ("mov r0, r0");
 			}
 			break;
-		case 2 :				// bubble 2 : 
+		case 2 :				// bubble 2 : Power Bubble
+                        for (i = 0 ; i < num_loops ; i ++ ){
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			asm volatile ("add r1, r1");
+			}
 			break;
-
 		//etc
 	} // end of switch
 
@@ -2917,8 +2944,10 @@ inline void sample_values(void){
 	for ( i = 0 ; i < EXYNOS_TMU_COUNT ; i++ ){
 		__get_cpu_var(monitor_stats_data)[__get_cpu_var(monitor_stats_index)].temp[i] 	= temp_monitor[i] ; 
 	}
-	__get_cpu_var(monitor_stats_data)[__get_cpu_var(monitor_stats_index)].power_id	 	= __get_cpu_var(power_core_id); 
-	__get_cpu_var(monitor_stats_data)[__get_cpu_var(monitor_stats_index)].power 		= __get_cpu_var(power_core_monitor); 
+	__get_cpu_var(monitor_stats_data)[__get_cpu_var(monitor_stats_index)].power_id	 	= power_core_id_single; 		// __get_cpu_var(power_core_id); 
+	for ( i = 0 ; i < POWER_SENSOR_COUNT ; i++ ){
+		__get_cpu_var(monitor_stats_data)[__get_cpu_var(monitor_stats_index)].power[i] = power_core_monitor_single[i]; 	 
+	}
 	__get_cpu_var(monitor_stats_data)[__get_cpu_var(monitor_stats_index)].pid 		= __get_cpu_var(current_sched_pid); 
 	__get_cpu_var(monitor_stats_data)[__get_cpu_var(monitor_stats_index)].volt 		= __get_cpu_var(volt_core_monitor); 
 	__get_cpu_var(monitor_stats_data)[__get_cpu_var(monitor_stats_index)].freq 		= __get_cpu_var(freq_core_monitor); 
@@ -2963,10 +2992,11 @@ void scheduler_tick(void)
 	#ifdef VARDROID
 	if (vardroid_active == 1){
 		vardroid_bubble(vardroid_select_bubble_global);
+	}else{
+		cycles_overhead = 0;
+		instructions_overhead = 0;
 	}
 	#endif //VARDROID
-
-
 
 
 	#ifdef MONITOR_ON

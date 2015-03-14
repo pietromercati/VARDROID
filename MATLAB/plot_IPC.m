@@ -8,6 +8,16 @@ jiffies_difference     = zeros(NUM_CORES, max(size1) );
 instruction_difference = zeros(NUM_CORES, max(size1) );
 cycles_difference      = zeros(NUM_CORES, max(size1) );
 IPC                    = zeros(NUM_CORES, max(size1) );
+freq_MHZ               = zeros(NUM_CORES, max(size1) );
+
+%adjust jiffies
+
+jiffy_axes = monitor_stats_data_cpu(1:size_ref,2,index_ref) ;
+min_jiffy = min(jiffy_axes);
+
+% avoid problems related to very large numbers
+jiffy_axes = jiffy_axes - min_jiffy;
+
 
 %---------------------------------------------------------------------------------
 
@@ -28,18 +38,29 @@ for k = 1 : num_monitored_cpus
       monitor_stats_data_cpu(j+1:size1(i),2,i) = monitor_stats_data_cpu(j+1:size1(i),2,i) + 2^32 ;
     end
     
-%    if cycles_difference(i,j) < 0
-%        cycles_difference(i,j) = cycles_difference(i,j) + 2^32 ;
-%    end
-%    
-%    if instruction_difference(i,j) < 0 
-%        instruction_difference(i,j) = instruction_difference(i,j) + 2^32 ;
-%    end
+    if cycles_difference(i,j) < 0
+        cycles_difference(i,j) = cycles_difference(i,j) + 2^32 ;
+    end
+    
+    if instruction_difference(i,j) < 0 
+        instruction_difference(i,j) = instruction_difference(i,j) + 2^32 ;
+    end
   
   end
                                     
-  IPC (i,1:size1(i)-1) = instruction_difference(i,1:size1(i)-1) ./ cycles_difference(i,1:size1(i)-1) ;                 
+  IPC (i,1:size1(i)-1)      = instruction_difference(i,1:size1(i)-1) ./ cycles_difference(i,1:size1(i)-1) ;                 
+  freq_MHZ (i,1:size1(i)-1) = ( cycles_difference(i,1:size1(i)-1)  ./  jiffies_difference(i,1:size1(i)-1) ) / 10000;
+  %brutally force to 0 stuff that spoils the plot
+  for k = 1:size1(i)
+    if IPC(i,k) < 0
+      IPC(i,k) = 0;
+    end
+  end
 end
+
+
+
+
 
 % LITTLE
 figure
@@ -52,14 +73,12 @@ for k = 1 : num_monitored_cpus
   if i > 4 
     break;
   end
-  stairs(monitor_stats_data_cpu(1:size1(i),2,i),   IPC(i, 1:size1(i))  , colors(i));
+  stairs(jiffy_axes(1:size1(i)),   IPC(i, 1:size1(i))  , colors(i));
   % resize plot
   x1 = min(monitor_stats_data_cpu(1,2,monitored_cpus));
   x2 = max(max(monitor_stats_data_cpu(:,2,monitored_cpus)));
   y1 = 0 ;
   y2 = 3 ;
-  xlim([x1 , x2]);
-  ylim([y1 , y2]);
 end
 hold off
 legend('core0','core1','core2','core3');
@@ -73,17 +92,16 @@ ylabel('IPC');
 hold on
 for k = 1 : num_monitored_cpus
   i = monitored_cpus(k);                              %quantity to plot%
-  if i >= 4 
+  if i > 4 
      
-    stairs(monitor_stats_data_cpu(1:size1(i),2,i),  IPC(i, 1:size1(i))  , colors(i));
+    stairs(jiffy_axes(1:size1(i)),  IPC(i, 1:size1(i))  , colors(i));
     
     % resize plot
     x1 = min(monitor_stats_data_cpu(1,2,monitored_cpus));
     x2 = max(max(monitor_stats_data_cpu(:,2,monitored_cpus)));
     y1 = 0 ;
     y2 = 3 ;
-    xlim([x1 , x2]);
-    ylim([y1 , y2]);
+    
   end
 end
 hold off

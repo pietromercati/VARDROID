@@ -69,18 +69,20 @@ typedef struct
 #define CPU_ZERO(cpusetp) \
   memset((cpusetp), 0, sizeof(cpu_set_t))
 
+
 void setCurrentThreadAffinityMask(cpu_set_t mask)
 {
     int err, syscallres;
-        pid_t pid = gettid();
-        //printf("debug funct pid = %u\n", pid);
+    pid_t pid = gettid();
     syscallres = syscall(__NR_sched_setaffinity, pid, sizeof(mask), &mask);
     if (syscallres)
     {
         err = errno;
-
+        printf("Error in the syscall setaffinity: mask=%d=0x%x err=%d=0x%x", mask, mask, err, err);
     }
 }
+
+
 
 static inline unsigned int get_cyclecount (void)
 {
@@ -158,7 +160,10 @@ int main(int argc, char ** argv){
 
                 if (pidM != 0) {
                         //printf("debug : pidM = %u\n", pidM);
-					
+			CPU_ZERO(&mask);
+                        CPU_SET(target_cpu, &mask);
+                        setCurrentThreadAffinityMask(mask);
+		
 			for (k = 0 ; k < num_iterations ; k ++){
 				c1 = clock();
 
@@ -171,15 +176,13 @@ int main(int argc, char ** argv){
 				c2 = clock();
 			
 				time_spent = (double)(c2 - c1) / CLOCKS_PER_SEC;	        	
-				printf("Execution Time = %f\n", time_spent );
+				printf("%f\n", time_spent );
 			}
                         
                 }
                 else{
-                        CPU_ZERO(&mask);
-                        CPU_SET(target_cpu, &mask);
-                        setCurrentThreadAffinityMask(mask);
-                }
+			wait(NULL);
+                    }
 
 	// open driver, get jiffies and close driver
 	fd = open("/dev/vardroid_interface",O_RDWR);

@@ -3,6 +3,7 @@
 echo "REMEMBER: PROVIDE THE NUMBER OF ITERATION AS ARGUMENT TO THIS SCRIPT !"
 
 # PRELIMINARY
+sh switch_on_all_cores.sh
 echo "Setting performance governor to all cores"
 sh select_governor_all_cores.sh performance
 sleep 1
@@ -24,8 +25,8 @@ num_test_name=3
 
 num_iterations=$1
 
-PERT_variability_list=(0 5 10 15 20)
-num_PERT_variability=5
+PERT_variability_list=(0 10 20)
+num_PERT_variability=3
 
 # for each test (microbenchmark) : (test_name_list)
 for k in `seq 0 $((num_test_name-1))`;
@@ -42,33 +43,30 @@ do
 		# invoke vardroid_PERT
 		./${test_dir}/vardroid_PERT $PERT_variability		
 
-		sleep 2
 	
 		# activate monitor and save PID
-		echo "activate monitor"
-		./monitor_userspace &
-		monitor_pid=$!
-		echo $monitor_pid
-		sleep 1	
+		#echo "activate monitor"
+		#./monitor_userspace &
+		#monitor_pid=$!
+		#echo $monitor_pid
+		#sleep 1	
 
 		# run benchmark
 		echo "executing test"
-		./${test_dir}/${test_name} $num_iterations
+		./${test_dir}/${test_name} $num_iterations > execution_time_PERT_${test_name}_${PERT_variability}
 		echo "end test"
 
-		sleep 1
 		# kill monitor
-		kill -9 $monitor_pid
+		#kill -9 $monitor_pid
 
-		mkdir results_microbenchmark_PERT_${test_name}_${PERT_variability}
+		#mkdir ./MICROBENCHMARKS_RESULTS/results_microbenchmark_PERT_${test_name}_${PERT_variability}
 			
-		cp MONITOR_STATS/monitor_stats_data_cpu_* ./results_microbenchmark_PERT_${test_name}_${PERT_variability}
-
+		#cp MONITOR_STATS/monitor_stats_data_cpu_* ./MICROBENCHMARKS_RESULTS/results_microbenchmark_PERT_${test_name}_${PERT_variability}
 
 	done
-
 done
 
+mv execution_time_PERT_* ./MICROBENCHMARKS_RESULTS/
 #----------------------------------------------------
 
 echo "Turning all cores back on"

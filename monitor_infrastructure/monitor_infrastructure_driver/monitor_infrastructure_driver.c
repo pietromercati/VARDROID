@@ -51,11 +51,13 @@
 #define MONITOR_NAME "monitor"
 
 #define SELECT_CPU 	1
-#define READY 		2
-#define S_READY 	3
+#define READY 		3
+#define S_READY 	4
 
 
 #define EXYNOS_TMU_COUNT 5 // this has to be the same as in exynos_thermal.c and core.c
+#define POWER_SENSOR_COUNT      4 // number of power sensors
+
 /*
 *	Defines the dimention of the buffer to allocate for collecting the MONITOR statistics. 	
 */
@@ -69,7 +71,7 @@ struct monitor_stats_data {
 		unsigned long int instructions;
 		unsigned int temp[EXYNOS_TMU_COUNT] ;
 		unsigned int power_id;
-                unsigned int power ;
+                unsigned int power[POWER_SENSOR_COUNT] ;
                 unsigned int pid ;
                 unsigned int volt ;
                 unsigned int freq ;

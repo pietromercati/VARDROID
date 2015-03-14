@@ -1,4 +1,4 @@
-  
+    
 // --------------- MONITOR INFRASTRUCTURE - USERSPACE DAEMON -----------------
 /*
  * 
@@ -55,10 +55,11 @@
 #define MONITOR_EXPORT_LENGTH 1024      // Number of enries of kind "monitor_stats_data" inside the allocated buffer
 // Macros for ioctl
 #define SELECT_CPU 	1
-#define READY 		2
-#define S_READY		3
+#define READY 		3
+#define S_READY		4
 
 #define EXYNOS_TMU_COUNT 5 // this has to be the same as in exynos_thermal.c and core.c
+#define POWER_SENSOR_COUNT 4
 
 struct monitor_stats_data {
                 unsigned int cpu;
@@ -67,7 +68,7 @@ struct monitor_stats_data {
                 unsigned long int instructions;
                 unsigned int temp[EXYNOS_TMU_COUNT] ;
 		unsigned int power_id;
-		unsigned int power ;
+		unsigned int power[POWER_SENSOR_COUNT] ;
 		unsigned int pid ;
 		unsigned int volt ;
 		unsigned int freq ;
@@ -92,6 +93,8 @@ int main(int argc, char ** argv){
 	char file_name[60];
 	FILE *fp;
 	int i;
+	int condition;
+
 	system("rm /data/PIETRO/MONITOR_STATS/monitor_stats_data_cpu_*");
 
 
@@ -106,9 +109,11 @@ int main(int argc, char ** argv){
                 exit(0);
         }
 
+
 	// save the current status of ready flags	
 	for (cpu = 0 ; cpu < NUM_CPU ; cpu++){
-		ioctl(fd, READY, &ready[cpu]);
+		ioctl(fd, SELECT_CPU, &cpu);
+		ioctl(fd, S_READY, &ready[cpu]);
 		ready_old[cpu] = 1 ; 
 	}
 		
@@ -125,7 +130,13 @@ int main(int argc, char ** argv){
 			ioctl(fd, SELECT_CPU, &cpu);
 			ioctl(fd, S_READY, &ready[cpu]);
 
-			if ( (ready[cpu] == ready_old[cpu])  &&   (ready[cpu] != 0) ){ // in case these two are verified, then the buffer is not ready
+			#ifdef DEBUG
+			printf("cpu %u, ready %u, ready old %u\n", cpu, ready[cpu], ready_old[cpu]);
+			#endif
+
+			condition =( (ready[cpu] == ready_old[cpu])  && (ready[cpu] != 0 ) ) || ( ready[cpu] == 0 );
+
+			if ( condition ){ // in case these two are verified, then the buffer is not ready
 				#ifdef DEBUG
                         	printf("CPU %u Not ready yet...\n", cpu);
                         	printf("READY = %u\n", ready[cpu]);
@@ -161,8 +172,8 @@ int main(int argc, char ** argv){
 				for(i = MONITOR_EXPORT_LENGTH-1 ; i>=0 ; i--){
                         		fprintf(
 						fp,
-					       //1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16  17  18
-                                        	"%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%d\t%d\t%lu\n",
+					       //1    2    3    4    5    6    7    8    9    10   11   12   13   14   15   16  17  18   19   20   21
+                                        	"%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%lu\t%d\t%d\t%lu\t%lu\t%lu\t%lu\n",
                                                 log_struct[i].cpu,		//1
                                                 log_struct[i].j,		//2
                                                 log_struct[i].cycles,		//3
@@ -173,14 +184,17 @@ int main(int argc, char ** argv){
 						log_struct[i].temp[3],		//8
 						log_struct[i].temp[4],		//9
 						log_struct[i].power_id,		//10
-						log_struct[i].power,		//11
-						log_struct[i].pid,		//12
-						log_struct[i].volt,		//13
-						log_struct[i].freq,		//14
-						log_struct[i].fan,		//15
-						log_struct[i].task_prio,	//16
-						log_struct[i].task_static_prio,	//17
-						log_struct[i].test		//18
+						log_struct[i].power[0],		//11
+						log_struct[i].power[1],		//12
+						log_struct[i].power[2],		//13
+						log_struct[i].power[3],		//14
+						log_struct[i].pid,		//15
+						log_struct[i].volt,		//16
+						log_struct[i].freq,		//17
+						log_struct[i].fan,		//18
+						log_struct[i].task_prio,	//19
+						log_struct[i].task_static_prio,	//20
+						log_struct[i].test		//21
 								);
 				}
 				

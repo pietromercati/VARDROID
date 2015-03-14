@@ -16,6 +16,9 @@
 
 // Pietro
 #define MONITOR_ON
+#define POWER_SENSOR_COUNT 4
+extern unsigned int power_core_monitor_single[POWER_SENSOR_COUNT];
+extern unsigned int power_core_id_single;
 DECLARE_PER_CPU(unsigned int , power_core_monitor);
 DECLARE_PER_CPU(unsigned int , power_core_id);
 
@@ -145,19 +148,23 @@ static 	void 	ina231_work		(struct work_struct *work)
 	#ifdef MONITOR_ON
 	switch (sensor->pd->name[7]){
 		case 'a' :
-			__get_cpu_var(power_core_id)	= 0;
+			//__get_cpu_var(power_core_id)	= 0;
+			power_core_id_single		= 0;
 			break;
 		case 'k' :
-			__get_cpu_var(power_core_id)	= 1;
+			//__get_cpu_var(power_core_id)	= 1;
+			power_core_id_single		= 1;
 			break;
 		case 'g' :
-			__get_cpu_var(power_core_id)	= 2;
+			//__get_cpu_var(power_core_id)	= 2;
+			power_core_id_single		= 2;
 			break;
 		case 'm' :
-			__get_cpu_var(power_core_id)	= 3;
+			//__get_cpu_var(power_core_id)	= 3;
+			power_core_id_single		= 3;
 			break;
 	}
-	__get_cpu_var(power_core_monitor) 	= sensor->cur_uW;
+	power_core_monitor_single[power_core_id_single] = sensor->cur_uW;
 	#endif 
 
 

@@ -1,4 +1,4 @@
-    
+        
 // --------------- VARDROID PROJECT - PERT ----------------
 /*
  * 
@@ -99,7 +99,10 @@ int main(int argc, char ** argv){
 	}
 
 	var = strtol(argv[1],&p,10);
-
+	
+	if (var < 0){
+		var = 0;
+	}
 
 	//for each core: assign a maximum frequency
 	for (i = 0 ; i < NUM_CORES ; i++ ){

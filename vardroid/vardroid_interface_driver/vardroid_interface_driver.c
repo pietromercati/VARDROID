@@ -53,11 +53,11 @@
 #define SELECT_BUBBLE 		1
 #define SELECT_BUBBLE_LENGTH 	3
 #define READ_JIFFIES		4
-
+#define ACTIVATE_VARDROID	5
 
 extern int vardroid_select_bubble_global;
 extern int vardroid_bubble_length;
-
+extern int vardroid_active;
 /* ---- Private Constants and Types -------------------------------------- */
 static char vardroidBanner[] __initdata = KERN_INFO "User Mode VARDROID INTERFACE Driver: 1.00\n";
 
@@ -128,6 +128,14 @@ static long vardroid_ioctl(struct file *file,
                                 return -EFAULT;
                         }
                         break;
+		case ACTIVATE_VARDROID:
+			if ( copy_from_user( &vardroid_active, (int *)arg, sizeof(vardroid_activate) )) {
+							
+			printk(KERN_ALERT "vardroid_activate ERROR\n\n");
+				return -EFAULT;
+			}
+			printk(KERN_ALERT "vardroid_activate = %u\n\n", vardroid_active);
+			break;
 		default:
 			printk(KERN_ALERT "DEBUG: vardroid_ioctrl - You should not be here!!!!\n");
 			retval = -EINVAL;
